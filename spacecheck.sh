@@ -56,13 +56,28 @@ while getopts "n:d:s:ra:l:" opt; do
 done
 shift $((OPTIND-1))
 
-# Determinar o diretório de trabalho (se especificado)
-if [ -n "$1" ]; then
-    dir="$1"
-fi
+
+# Verificar se o diretório foi passado como argumento
+
+diretório() {
+    local arg="$1"    
+    local ult_arg="${!#}"  # Acesse o último argumento usando !#
+
+    if [ -d "$arg" ]; then
+        dir="$arg"
+    elif [ -d "$ult_arg" ]; then
+        dir="$ult_arg"
+    else
+        echo "Diretório inválido: $arg"
+        exit 1
+    fi
+}
+
+diretório "$@"
+
 
 # Gerar comando find baseado em opções
-find_cmd="find '$dir'"
+find_cmd="find $dir"
 
 if [ -n "$regex_filter" ]; then
     find_cmd="$find_cmd -type f -regex '$regex_filter'"
@@ -83,11 +98,11 @@ if [ -n "$limit_lines" ]; then
     $find_cmd -exec echo {} \; | while read -r item; do
         espaco=$(calcular_espaco "$item")
         printf "%s\t%s\n" "$espaco" "$item"
-    done | ($sort_by_name && $reverse_order && sort -rh || $sort_by_name && sort -h || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h) | head -n "$limit_lines"
+    done | ($sort_by_name && ($reverse_order && sort -k1,1 -rh || sort -k1,1 -h) || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h) | head -n "$limit_lines"
 else
     $find_cmd -exec echo {} \; | while read -r item; do
         espaco=$(calcular_espaco "$item")
         printf "%s\t%s\n" "$espaco" "$item"
-    done | ($sort_by_name && $reverse_order && sort -rh || $sort_by_name && sort -h || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h)
+    done | ($sort_by_name && ($reverse_order && sort -k1,1 -rh || sort -k1,1 -h) || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h)
 fi
 
