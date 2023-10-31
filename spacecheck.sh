@@ -1,4 +1,4 @@
-    # funçao que permite a visualização do espaço
+ # funçao que permite a visualização do espaço
     # ocupado pelos ficheiros selecionados na(s) diretoria(s) que lhe é(são) passada(s) 
     # como argumento e em todas as subdiretorias destas.
 
@@ -20,13 +20,32 @@
         local espaco="NA"
 
         if [ -e "$item" ]; then
-            espaco=$(du -b -sh "$item" 2>/dev/null | cut -f1)
+            espaco=$(du -b "$item" 2>/dev/null | cut -f1)
             if [ -z "$espaco" ]; then
                 espaco="NA"
             fi
         fi
 
         echo "$espaco"
+    }
+
+    function calcular_tamanho_total() {
+        local diretorio="$1"
+        local sum=0
+
+        if [ -d "$diretorio" ]; then
+            for item in "$diretorio"/*; do
+                # Adicione uma verificação para ver se o arquivo corresponde ao filtro regex
+                if [[ "$item" =~ $regex_filter ]] && [ -e "$item" ]; then
+                    espaco=$(du -b "$item" 2>/dev/null | cut -f1)
+                    if [ -n "$espaco" ]; then
+                        sum=$((sum + espaco))
+                    fi
+                fi
+            done
+        fi
+
+        echo "$sum"
     }
 
     # Função de ajuda
@@ -85,15 +104,25 @@
     fi
 
     # Executar o comando find e calcular espaço ocupado
-    if [ -n "$limit_lines" ]; then
-        $find_cmd -exec echo {} \; | while read -r item; do
-            espaco=$(calcular_espaco "$item")
-            printf "%s\t%s\n" "$espaco" "$item"
-        done | ($sort_by_name && ($reverse_order && sort -k1,1 -rh || sort -k1,1 -h) || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h) | head -n "$limit_lines"
-    else
-        $find_cmd -exec echo {} \; | while read -r item; do
-            espaco=$(calcular_espaco "$item")
-            printf "%s\t%s\n" "$espaco" "$item"
-        done | ($sort_by_name && ($reverse_order && sort -k1,1 -rh || sort -k1,1 -h) || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h)
-    fi
+    #!/bin/bash
 
+
+    # Modifique a seção após o comentário "# Executar o comando find e calcular espaço ocupado"
+
+    function print_subdirectories() {
+        local directory="$1"
+
+        find "$directory" -type d -print | while read -r subdir; do
+            espaco=$(calcular_tamanho_total "$subdir")
+
+            if [ "$espaco" -ne 0 ]; then
+            printf "%s\t%s\n" "$espaco" "$subdir"
+        fi
+        done
+    }
+
+    if [ -n "$limit_lines" ]; then
+        print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -k1,1 -rh || sort -k1,1 -h) || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h) | head -n "$limit_lines"
+    else
+        print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -k1,1 -rh || sort -k1,1 -h) || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h)
+    fi
