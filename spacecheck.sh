@@ -13,6 +13,14 @@
     sort_by_name=""
     limit_lines=""
     dir="."
+    
+    # Verificar se o diretório foi passado como argumento
+
+    if [ -n "$1" ]; then
+        dir="$1"
+    else
+        dir="."  # Defina o diretório padrão se nenhum diretório for especificado.
+    fi
 
     # Função para calcular o espaço ocupado por um arquivo ou diretório
     function calcular_espaco() {
@@ -74,16 +82,6 @@
         esac
     done
     shift $((OPTIND-1))
-
-
-    # Verificar se o diretório foi passado como argumento
-
-    if [ -n "$1" ]; then
-        dir="$1"
-    else
-        dir="."  # Defina o diretório padrão se nenhum diretório for especificado.
-    fi
-
 
     # Gerar comando find baseado em opções
     find_cmd="find $dir"
