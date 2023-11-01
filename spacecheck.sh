@@ -1,126 +1,118 @@
- # funçao que permite a visualização do espaço
-    # ocupado pelos ficheiros selecionados na(s) diretoria(s) que lhe é(são) passada(s) 
-    # como argumento e em todas as subdiretorias destas.
+#!/bin/bash
 
-    #!/bin/bash
+# Default Variables
+show_all_files=1
+regex_filter=""
+max_modification_date=""
+min_file_size=""
+reverse_order=""
+sort_by_name=""
+limit_lines=""
+dir="."
 
-    # Variáveis padrão
-    show_all_files=1
-    regex_filter=""
-    max_modification_date=""
-    min_file_size=""
-    reverse_order=""
-    sort_by_name=""
-    limit_lines=""
-    dir="."
-    
-    # Verificar se o diretório foi passado como argumento
+# Function to calculate the space occupied by a file or directory
+function calcular_espaco() {
+    local item="$1"
+    local espaco="NA"
 
-    if [ -n "$1" ]; then
-        dir="$1"
-    else
-        dir="."  # Defina o diretório padrão se nenhum diretório for especificado.
+    if [ -e "$item" ]; then
+        espaco=$(du -bs "$item" 2>/dev/null | cut -f1)
+        if [ -z "$espaco" ]; then
+            espaco="NA"
+        fi
     fi
 
-    # Função para calcular o espaço ocupado por um arquivo ou diretório
-    function calcular_espaco() {
-        local item="$1"
-        local espaco="NA"
+    echo "$espaco"
+}
 
-        if [ -e "$item" ]; then
-            espaco=$(du -b "$item" 2>/dev/null | cut -f1)
-            if [ -z "$espaco" ]; then
-                espaco="NA"
-            fi
-        fi
+# Function to calculate the total size of a directory
+function calcular_tamanho_total() {
+    local diretorio="$1"
+    local sum=0
+    local regex_filter="$2"
+    local max_modification_date="$3"
+    local min_file_size="$4"
 
-        echo "$espaco"
-    }
-
-    function calcular_tamanho_total() {
-        local diretorio="$1"
-        local sum=0
-
-        if [ -d "$diretorio" ]; then
-            for item in "$diretorio"/*; do
-                # Adicione uma verificação para ver se o arquivo corresponde ao filtro regex
-                if [[ "$item" =~ $regex_filter ]] && [ -e "$item" ]; then
-                    espaco=$(du -b "$item" 2>/dev/null | cut -f1)
-                    if [ -n "$espaco" ]; then
-                        sum=$((sum + espaco))
-                    fi
+    if [ -d "$diretorio" ]; then
+        for item in "$diretorio"/*; do
+            if [[ "$item" =~ $regex_filter && -e "$item" && ( -z "$max_modification_date" || "$(stat -c %Y "$item")" -le "$(date -d "$max_modification_date" +%s)" ) && ( -z "$min_file_size" || "$(stat -c %s "$item")" -ge "$min_file_size" ) ]]; then
+                espaco=$(calcular_espaco "$item")
+                if [ "$espaco" != "NA" ]; then
+                    sum=$((sum + espaco))
                 fi
-            done
-        fi
-
-        echo "$sum"
-    }
-
-    # Função de ajuda
-    function exibir_ajuda() {
-        echo "Uso: $0 [-n <regex>] [-d <data>] [-s <tamanho>] [-r] [-a] [-l <linhas>] <diretório>"
-        echo "Opções:"
-        echo "  -n <regex>      Filtrar por expressão regular no nome do arquivo"
-        echo "  -d <data>       Filtrar por data máxima de modificação (formato AAAA-MM-DD)"
-        echo "  -s <tamanho>    Filtrar por tamanho mínimo de arquivo (em bytes)"
-        echo "  -r              Ordenar em ordem reversa"
-        echo "  -a              Ordenar por nome de arquivo"
-        echo "  -l <linhas>     Limitar o número de linhas da tabela"
-        echo "  <diretório>     Diretório a ser analisado (padrão: diretório atual)"
-    }
-
-    # Processar argumentos
-    while getopts "n:d:s:ral:" opt; do
-        case $opt in
-            n) regex_filter="$OPTARG" ;;
-            d) max_modification_date="$OPTARG" ;;
-            s) min_file_size="$OPTARG" ;;
-            r) reverse_order=1 ;;
-            a) sort_by_name=1 ;;
-            l) limit_lines="$OPTARG" ;;
-            \?) exibir_ajuda; exit 1 ;;
-        esac
-    done
-    shift $((OPTIND-1))
-
-    # Gerar comando find baseado em opções
-    find_cmd="find $dir"
-
-    if [ -n "$regex_filter" ]; then
-        find_cmd="$find_cmd -type f -regex "$regex_filter""
-    else
-        find_cmd="$find_cmd -type f"
+            fi
+        done
     fi
 
+    echo "$sum"
+}
 
-    if [ -n "$max_modification_date" ]; then
-        find_cmd="$find_cmd -newermt $max_modification_date"
-    fi
+# Help function
+function exibir_ajuda() {
+    echo "Uso: $0 [-n <regex>] [-d <data>] [-s <tamanho>] [-r] [-a] [-l <linhas>] <diretório>"
+    echo "Opções:"
+    echo "  -n <regex>      Filtrar por expressão regular no nome do arquivo"
+    echo "  -d <data>       Filtrar por data máxima de modificação (formato AAAA-MM-DD)"
+    echo "  -s <tamanho>    Filtrar por tamanho mínimo de arquivo (em bytes)"
+    echo "  -r              Ordenar em ordem reversa"
+    echo "  -a              Ordenar por nome de arquivo"
+    echo "  -l <linhas>     Limitar o número de linhas da tabela"
+    echo "  <diretório>     Diretório a ser analisado (padrão: diretório atual)"
+}
 
-    if [ -n "$min_file_size" ]; then
-        find_cmd="$find_cmd -size +${min_file_size}c"
-    fi
+# Process arguments
+while getopts "n:d:s:ral:" opt; do
+    case $opt in
+        n) regex_filter="$OPTARG" ;;
+        d) max_modification_date="$OPTARG" ;;
+        s) min_file_size="$OPTARG" ;;
+        r) reverse_order=1 ;;
+        a) sort_by_name=1 ;;
+        l) limit_lines="$OPTARG" ;;
+        \?) exibir_ajuda; exit 1 ;;
+    esac
+done
+shift $((OPTIND-1))
 
-    # Executar o comando find e calcular espaço ocupado
-    #!/bin/bash
+# Check if a directory was provided as an argument
+if [ -n "$1" ]; then
+    dir="$1"
+else
+    dir="."
+fi
 
+# Generate the 'find' command based on options
+find_cmd="find $dir"
 
-    # Modifique a seção após o comentário "# Executar o comando find e calcular espaço ocupado"
+if [ -n "$regex_filter" ]; then
+    find_cmd="$find_cmd -type f -regex '$regex_filter'"
+else
+    find_cmd="$find_cmd -type f"
+fi
 
-    function print_subdirectories() {
-        local directory="$1"
+if [ -n "$max_modification_date" ]; then
+    find_cmd="$find_cmd -newermt '$max_modification_date 00:00:00'"
+fi
 
-        find "$directory" -type d -print | while read -r subdir; do
-            espaco=$(calcular_tamanho_total "$subdir")
+if [ -n "$min_file_size" ]; then
+    find_cmd="$find_cmd -size +${min_file_size}c"
+fi
 
-            if [ "$espaco" -ne 0 ]; then
+# Execute the 'find' command and calculate the space occupied
+function print_subdirectories() {
+    local directory="$1"
+
+    find "$directory" -type d -print | while read -r subdir; do
+        espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
+
+        if [ "$espaco" -ne 0 ]; then
             printf "%s\t%s\n" "$espaco" "$subdir"
         fi
-        done
-    }
+    done
+}
 
-    if [ -n "$limit_lines" ]; then
-        print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -k1,1 -rh || sort -k1,1 -h) || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h) | head -n "$limit_lines"
-    else
-        print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -k1,1 -rh || sort -k1,1 -h) || $reverse_order && sort -r -k1,1 -h || sort -k1,1 -h)
-    fi
+if [ -n "$limit_lines" ]; then
+    print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -t$'\t' -k1,1 -rh || sort -t$'\t' -k1,1 -h) || $reverse_order && sort -t$'\t' -k1,1 -r -h || sort -t$'\t' -k1,1 -h) | head -n "$limit_lines"
+else
+    print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -t$'\t' -k1,1 -rh || sort -t$'\t' -k1,1 -h) || $reverse_order && sort -t$'\t' -k1,1 -r -h || sort -t$'\t' -k1,1 -h)
+fi
