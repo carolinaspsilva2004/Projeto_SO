@@ -10,6 +10,8 @@ sort_by_name=""
 limit_lines=""
 dir="."
 
+current_date=$(date +'%Y%m%d')
+
 # Function to calculate the space occupied by a file or directory
 function calcular_espaco() {
     local item="$1"
@@ -110,6 +112,8 @@ function print_subdirectories() {
         fi
     done
 }
+
+printf "SIZE\tNAME\t%s\t%s\n" "$current_date" "$dir"
 
 if [ -n "$limit_lines" ]; then
     print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -t$'\t' -k1,1 -rh || sort -t$'\t' -k1,1 -h) || $reverse_order && sort -t$'\t' -k1,1 -r -h || sort -t$'\t' -k1,1 -h) | head -n "$limit_lines"
