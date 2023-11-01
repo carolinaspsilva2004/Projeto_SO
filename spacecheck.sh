@@ -102,7 +102,7 @@ fi
 function print_subdirectories() {
     local directory="$1"
 
-    find "$directory" -type d -print | while read -r subdir; do
+    find "$directory" -type d -print | sort $sort_option | while read -r subdir; do
         espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
 
         if [ "$espaco" -ne 0 ]; then
