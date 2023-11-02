@@ -51,6 +51,7 @@ function calcular_tamanho_total() {
     echo "$sum"
 }
 
+
 # Help function
 function exibir_ajuda() {
     echo "Uso: $0 [-n <regex>] [-d <data>] [-s <tamanho>] [-r] [-a] [-l <linhas>] <diretório>"
@@ -109,33 +110,26 @@ fi
 # Execute the 'find' command and calculate the space occupied
 function print_subdirectories() {
     local directory="$1"
+    local sort_order="-k1,1n"
 
-    if [ "$a_option" -eq 1 ]; then 
-        find "$directory" -type d -print | sort $sort_option -t$'\t' -k1,1 -h | while read -r subdir; do
-            espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
+    if [ "$r_option" -eq 1 ]; then
+        sort_order="-r -k1,1n"
+    fi
 
-            if [ "$espaco" -ne 0 ]; then
-                printf "%s\t%s\n" "$espaco" "$subdir"
+    if [ "$a_option" -eq 1 ]; then
+        find "$directory" -type d 2>/dev/null | sort $sort_order -t$'\t' -h | while read -r subdir; do
+            if [ -d "$subdir" ]; then
+                espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
+                [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir" || printf "NA\t%s\n" "$subdir"
             fi
         done
     else
-        if [ "$r_option" -eq 1 ];then
-            find "$directory" -type d -print | while read -r subdir; do
+        find "$directory" -type d 2>/dev/null | while read -r subdir; do
+            if [ -d "$subdir" ]; then
                 espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-
-                if [ "$espaco" -ne 0 ]; then
-                    printf "%s\t%s\n" "$espaco" "$subdir"
-                fi
-            done | sort -t$'\t' -k1,1 -h
-        else
-            find "$directory" -type d -print | while read -r subdir; do
-                espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-
-                if [ "$espaco" -ne 0 ]; then
-                    printf "%s\t%s\n" "$espaco" "$subdir"
-                fi
-            done | sort -t$'\t' -k1,1 -rh
-        fi
+                [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir" || printf "NA\t%s\n" "$subdir"
+            fi
+        done | sort -t$'\t' $sort_order -h
     fi
 }
 
