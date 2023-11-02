@@ -112,14 +112,14 @@ function print_subdirectories() {
     if [ "$a_option" -eq 1 ]; then
         sort_order="-d"
         if [ "$r_option" -eq 1 ]; then
-            sort_order="-dr "
+            sort_order="-dr"
         fi
-        find "$directory" -type d 2>/dev/null | while read -r subdir; do
+        find "$directory" -type d 2>/dev/null | sort "$sort_order" -t$'\t' | while read -r subdir; do
             if [ -d "$subdir" ]; then
                 espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
                 [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir"
             fi
-        done | sort "$sort_order" -t$'\t' 
+        done 
     else
         sort_order="-k1,1nr"
         if [ "$r_option" -eq 1 ]; then
