@@ -1,12 +1,9 @@
 #!/bin/bash
 
 # Default Variables
-show_all_files=1
 regex_filter=""
 max_modification_date=""
 min_file_size=""
-reverse_order=""
-sort_option=""
 limit_lines=""
 dir="."
 a_option=0
@@ -71,10 +68,10 @@ while getopts "n:d:s:ral:" opt; do
         n) regex_filter="$OPTARG" ;;
         d) max_modification_date="$OPTARG" ;;
         s) min_file_size="$OPTARG" ;;
-        r) sort_option="-r" 
+        r)
             r_option=1
             ;;
-        a) sort_option=""
+        a) 
             a_option=1 
             ;;
         l) limit_lines="$OPTARG" ;;
@@ -116,7 +113,7 @@ function print_subdirectories() {
         if [ "$r_option" -eq 1 ]; then
             sort_order="-k1,1n -r"
         fi
-        find "$directory" -type d 2>/dev/null | sort $sort_order -t$'\t' -h | while read -r subdir; do
+        find "$directory" -type d 2>/dev/null | sort "$sort_order" -t$'\t' -h | while read -r subdir; do
             if [ -d "$subdir" ]; then
                 espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
                 [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir" || printf "NA\t%s\n" "$subdir"
