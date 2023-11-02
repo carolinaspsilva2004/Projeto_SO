@@ -136,7 +136,7 @@ function print_subdirectories() {
                 if [ "$espaco" != "NA" ]; then
                     printf "%s\t%s\n" "$espaco" "$subdir"
                 else
-                    printf "NA\t%s\n" "$subdir"  # Print "NA" for inaccessible directories
+                    printf "NA\t%s\n" "$subdir"
                 fi
             fi
         done | sort -t$'\t' $sort_order
