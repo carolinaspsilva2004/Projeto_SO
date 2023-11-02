@@ -107,28 +107,30 @@ fi
 # Execute the 'find' command and calculate the space occupied
 function print_subdirectories() {
     local directory="$1"
-    local sort_order="-k1,1n"
+    local sort_order=""
 
     if [ "$a_option" -eq 1 ]; then
+        sort_order="-d"
         if [ "$r_option" -eq 1 ]; then
-            sort_order="-k1,1n -r"
-        fi
-        find "$directory" -type d 2>/dev/null | sort "$sort_order" -t$'\t' -h | while read -r subdir; do
-            if [ -d "$subdir" ]; then
-                espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-                [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir" || printf "NA\t%s\n" "$subdir"
-            fi
-        done
-    else
-        if [ "$r_option" -eq 0 ]; then
-            sort_order="-k1,1"
+            sort_order="-dr "
         fi
         find "$directory" -type d 2>/dev/null | while read -r subdir; do
             if [ -d "$subdir" ]; then
                 espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-                [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir" || printf "NA\t%s\n" "$subdir"
+                [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir"
             fi
-        done | sort -t$'\t' $sort_order -h -k1,1 -r
+        done | sort "$sort_order" -t$'\t' 
+    else
+        sort_order="-k1,1nr"
+        if [ "$r_option" -eq 1 ]; then
+            sort_order="-k1,1n"
+        fi
+        find "$directory" -type d 2>/dev/null | while read -r subdir; do
+            if [ -d "$subdir" ]; then
+                espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
+                [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir"
+            fi
+        done | sort -t$'\t' $sort_order
     fi
 }
 
