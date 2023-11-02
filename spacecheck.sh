@@ -6,11 +6,9 @@ regex_filter=""
 max_modification_date=""
 min_file_size=""
 reverse_order=""
-sort_option=""
+sort_by_name=""
 limit_lines=""
 dir="."
-a_option=0
-r_option=0
 
 current_date=$(date +'%Y%m%d')
 
@@ -70,12 +68,8 @@ while getopts "n:d:s:ral:" opt; do
         n) regex_filter="$OPTARG" ;;
         d) max_modification_date="$OPTARG" ;;
         s) min_file_size="$OPTARG" ;;
-        r) sort_option="-r" 
-            r_option=1
-            ;;
-        a) sort_option=""
-            a_option=1 
-            ;;
+        r) reverse_order=1 ;;
+        a) sort_by_name=1 ;;
         l) limit_lines="$OPTARG" ;;
         \?) exibir_ajuda; exit 1 ;;
     esac
@@ -110,39 +104,19 @@ fi
 function print_subdirectories() {
     local directory="$1"
 
-    if [ "$a_option" -eq 1 ]; then 
-        find "$directory" -type d -print | sort $sort_option -t$'\t' -k1,1 -h | while read -r subdir; do
-            espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
+    find "$directory" -type d -print | sort $sort_option | while read -r subdir; do
+        espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
 
-            if [ "$espaco" -ne 0 ]; then
-                printf "%s\t%s\n" "$espaco" "$subdir"
-            fi
-        done
-    else
-        if [ "$r_option" -eq 1 ];then
-            find "$directory" -type d -print | while read -r subdir; do
-                espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-
-                if [ "$espaco" -ne 0 ]; then
-                    printf "%s\t%s\n" "$espaco" "$subdir"
-                fi
-            done | sort -t$'\t' -k1,1 -h
-        else
-            find "$directory" -type d -print | while read -r subdir; do
-                espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-
-                if [ "$espaco" -ne 0 ]; then
-                    printf "%s\t%s\n" "$espaco" "$subdir"
-                fi
-            done | sort -t$'\t' -k1,1 -rh
+        if [ "$espaco" -ne 0 ]; then
+            printf "%s\t%s\n" "$espaco" "$subdir"
         fi
-    fi
+    done
 }
 
 printf "SIZE\tNAME\t%s\t%s\n" "$current_date" "$dir"
 
 if [ -n "$limit_lines" ]; then
-    print_subdirectories "$dir" | head -n "$limit_lines"
+    print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -t$'\t' -k1,1 -rh || sort -t$'\t' -k1,1 -h) || $reverse_order && sort -t$'\t' -k1,1 -r -h || sort -t$'\t' -k1,1 -h) | head -n "$limit_lines"
 else
-    print_subdirectories "$dir"
-fi  
+    print_subdirectories "$dir" | ($sort_by_name && ($reverse_order && sort -t$'\t' -k1,1 -rh || sort -t$'\t' -k1,1 -h) || $reverse_order && sort -t$'\t' -k1,1 -r -h || sort -t$'\t' -k1,1 -h)
+fi
