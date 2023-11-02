@@ -29,20 +29,21 @@ function calcular_espaco() {
 # Function to calculate the total size of a directory
 function calcular_tamanho_total() {
     local diretorio="$1"
-    local sum=0
-    local regex_filter="$2"
-    local max_modification_date="$3"
-    local min_file_size="$4"
+    local sum="NA"  # Initialize sum as "NA"
 
     if [ -d "$diretorio" ]; then
-        for item in "$diretorio"/*; do
-            if [[ "$item" =~ $regex_filter && -e "$item" && ( -z "$max_modification_date" || "$(stat -c %Y "$item")" -le "$(date -d "$max_modification_date" +%s)" ) && ( -z "$min_file_size" || "$(stat -c %s "$item")" -ge "$min_file_size" ) ]]; then
-                espaco=$(calcular_espaco "$item")
-                if [ "$espaco" != "NA" ]; then
-                    sum=$((sum + espaco))
+        # Check if the directory is accessible
+        if [ -r "$diretorio" ]; then
+            sum=0
+            for item in "$diretorio"/*; do
+                if [[ "$item" =~ $regex_filter && -e "$item" && ( -z "$max_modification_date" || "$(stat -c %Y "$item")" -le "$(date -d "$max_modification_date" +%s)" ) && ( -z "$min_file_size" || "$(stat -c %s "$item")" -ge "$min_file_size" ) ]]; then
+                    espaco=$(calcular_espaco "$item")
+                    if [ "$espaco" != "NA" ]; then
+                        sum=$((sum + espaco))
+                    fi
                 fi
-            fi
-        done
+            done
+        fi
     fi
 
     echo "$sum"
@@ -117,7 +118,11 @@ function print_subdirectories() {
         find "$directory" -type d 2>/dev/null | sort "$sort_order" -t$'\t' | while read -r subdir; do
             if [ -d "$subdir" ]; then
                 espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-                [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir"
+                if [ "$espaco" != "NA" ]; then
+                    printf "%s\t%s\n" "$espaco" "$subdir"
+                else
+                    printf "NA\t%s\n" "$subdir"  # Print "NA" for inaccessible directories
+                fi
             fi
         done 
     else
@@ -128,11 +133,16 @@ function print_subdirectories() {
         find "$directory" -type d 2>/dev/null | while read -r subdir; do
             if [ -d "$subdir" ]; then
                 espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-                [ "$espaco" -ne 0 ] && printf "%s\t%s\n" "$espaco" "$subdir"
+                if [ "$espaco" != "NA" ]; then
+                    printf "%s\t%s\n" "$espaco" "$subdir"
+                else
+                    printf "NA\t%s\n" "$subdir"  # Print "NA" for inaccessible directories
+                fi
             fi
         done | sort -t$'\t' $sort_order
     fi
 }
+
 
 printf "SIZE\tNAME\t%s\t%s\n" "$current_date" "$dir"
 
