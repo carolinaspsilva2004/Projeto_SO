@@ -1,18 +1,18 @@
 #!/bin/bash
 
 # Default Variables
-regex_filter=""
-max_modification_date=""
-min_file_size=""
-limit_lines=""
+regex=""
+data_maxima=""
+size_min=""
+limite_l=""
 dir="."
-a_option=0
-r_option=0
+a=0
+r=0
 
-current_date=$(date +'%Y%m%d')
+data_atual=$(date +'%Y%m%d')
 
 # Function to calculate the space occupied by a file or directory
-function calcular_espaco() {
+function calcular_tamanho_ficheiro() {
     local item="$1"
     local espaco="NA"
 
@@ -27,7 +27,7 @@ function calcular_espaco() {
 }
 
 # Function to calculate the total size of a directory
-function calcular_tamanho_total() {
+function calcular_tamanho_dir() {
     local diretorio="$1"
     local sum="NA"  # Initialize sum as "NA"
 
@@ -36,8 +36,8 @@ function calcular_tamanho_total() {
         if [ -r "$diretorio" ]; then
             sum=0
             for item in "$diretorio"/*; do
-                if [[ "$item" =~ $regex_filter && -e "$item" && ( -z "$max_modification_date" || "$(stat -c %Y "$item")" -le "$(date -d "$max_modification_date" +%s)" ) && ( -z "$min_file_size" || "$(stat -c %s "$item")" -ge "$min_file_size" ) ]]; then
-                    espaco=$(calcular_espaco "$item")
+                if [[ "$item" =~ $regex && -e "$item" && ( -z "$data_maxima" || "$(stat -c %Y "$item")" -le "$(date -d "$data_maxima" +%s)" ) && ( -z "$size_min" || "$(stat -c %s "$item")" -ge "$size_min" ) ]]; then
+                    espaco=$(calcular_tamanho_ficheiro "$item")
                     if [ "$espaco" != "NA" ]; then
                         sum=$((sum + espaco))
                     fi
@@ -66,19 +66,36 @@ function exibir_ajuda() {
 # Process arguments
 while getopts "n:d:s:ral:" opt; do
     case $opt in
-        n) regex_filter="$OPTARG" ;;
-        d) max_modification_date="$OPTARG" ;;
-        s) min_file_size="$OPTARG" ;;
+        n) regex="$OPTARG" ;;
+        d)
+            # Check if data_maxima is a valid date
+            if ! date -d "$OPTARG" &>/dev/null; then
+                echo "Data inválida: $OPTARG"
+                exit 1
+            fi
+            data_maxima="$OPTARG" ;;
+        s)
+            # Check if size_min is a positive integer
+            if ! [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+                echo "Tamanho inválido: $OPTARG"
+                exit 1
+            fi
+            size_min="$OPTARG" ;;
         r)
-            r_option=1
-            ;;
-        a) 
-            a_option=1 
-            ;;
-        l) limit_lines="$OPTARG" ;;
+            r=1 ;;
+        a)
+            a=1 ;;
+        l)
+            # Check if limite_l is a positive integer
+            if ! [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+                echo "Limite de linhas inválido: $OPTARG"
+                exit 1
+            fi
+            limite_l="$OPTARG" ;;
         \?) exibir_ajuda; exit 1 ;;
     esac
 done
+
 shift $((OPTIND-1))
 
 # Check if a directory was provided as an argument
@@ -91,18 +108,18 @@ fi
 # Generate the 'find' command based on options
 find_cmd="find $dir"
 
-if [ -n "$regex_filter" ]; then
-    find_cmd="$find_cmd -type f -regex '$regex_filter'"
+if [ -n "$regex" ]; then
+    find_cmd="$find_cmd -type f -regex '$regex'"
 else
     find_cmd="$find_cmd -type f"
 fi
 
-if [ -n "$max_modification_date" ]; then
-    find_cmd="$find_cmd -newermt '$max_modification_date 00:00:00'"
+if [ -n "$data_maxima" ]; then
+    find_cmd="$find_cmd -newermt '$data_maxima 00:00:00'"
 fi
 
-if [ -n "$min_file_size" ]; then
-    find_cmd="$find_cmd -size +${min_file_size}c"
+if [ -n "$size_min" ]; then
+    find_cmd="$find_cmd -size +${size_min}c"
 fi
 
 # Execute the 'find' command and calculate the space occupied
@@ -110,33 +127,29 @@ function print_subdirectories() {
     local directory="$1"
     local sort_order=""
 
-    if [ "$a_option" -eq 1 ]; then
+    if [ "$a" -eq 1 ]; then
         sort_order="-d"
-        if [ "$r_option" -eq 1 ]; then
+        if [ "$r" -eq 1 ]; then
             sort_order="-dr"
         fi
         find "$directory" -type d 2>/dev/null | sort "$sort_order" -t$'\t' | while read -r subdir; do
             if [ -d "$subdir" ]; then
-                espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-                if [ "$espaco" != "NA" ]; then
+                espaco=$(calcular_tamanho_dir "$subdir" "$regex" "$data_maxima" "$size_min")
+                if [ "$espaco" != 0 ]; then
                     printf "%s\t%s\n" "$espaco" "$subdir"
-                else
-                    printf "NA\t%s\n" "$subdir"  # Print "NA" for inaccessible directories
                 fi
             fi
         done 
     else
         sort_order="-k1,1nr"
-        if [ "$r_option" -eq 1 ]; then
+        if [ "$r" -eq 1 ]; then
             sort_order="-k1,1n"
         fi
         find "$directory" -type d 2>/dev/null | while read -r subdir; do
             if [ -d "$subdir" ]; then
-                espaco=$(calcular_tamanho_total "$subdir" "$regex_filter" "$max_modification_date" "$min_file_size")
-                if [ "$espaco" != "NA" ]; then
+                espaco=$(calcular_tamanho_dir "$subdir" "$regex" "$data_maxima" "$size_min")
+                if [ "$espaco" != 0 ]; then
                     printf "%s\t%s\n" "$espaco" "$subdir"
-                else
-                    printf "NA\t%s\n" "$subdir"
                 fi
             fi
         done | sort -t$'\t' $sort_order
@@ -144,10 +157,10 @@ function print_subdirectories() {
 }
 
 
-printf "SIZE\tNAME\t%s\t%s\n" "$current_date" "$dir"
+printf "SIZE\tNAME\t%s\t%s\n" "$data_atual" "$dir"
 
-if [ -n "$limit_lines" ]; then
-    print_subdirectories "$dir" | head -n "$limit_lines"
+if [ -n "$limite_l" ]; then
+    print_subdirectories "$dir" | head -n "$limite_l"
 else
     print_subdirectories "$dir"
 fi  
