@@ -1,73 +1,105 @@
-
 #!/bin/bash
 
-# Função para exibir a ajuda
-function show_help() {
-  echo "Uso: $0 [opções] arquivo1 arquivo2"
-  echo "Opções:"
-  echo "  -r         Ordenar a saída em ordem reversa"
-  echo "  -a         Ordenar a saída por nome (ordem alfabética)"
-  echo "  -n         Não diferenciar diretórios apenas em um arquivo"
-  echo "  -l LIMIT   Limitar o número de linhas da tabela"
-  echo "  -h         Mostrar esta ajuda"
-  exit 1
+# Default Variables
+a=0
+r=0
+limite_l=""
+file1=""
+file2=""
+sort_order=""
+
+# Help function
+function exibir_ajuda() {
+    echo "Usage: $0 [-a] [-r] [-l <lines>] <file1> <file2>"
+    echo "Options:"
+    echo "  -r              Reverse order sorting"
+    echo "  -a              Sort by file name"
+    echo "  -l <lines>     Limit the number of table lines"
 }
 
-# Inicialização de variáveis padrão
-REVERSE_SORT=""
-ALPHABETICAL_SORT=""
-SHOW_ONLY_COMMON_DIRS=""
-LIMIT=""
-
-# Processar as opções de linha de comando
-while getopts ":ranhl:" opt; do
-  case $opt in
-    r) REVERSE_SORT="true";;
-    a) ALPHABETICAL_SORT="true";;
-    n) SHOW_ONLY_COMMON_DIRS="true";;
-    l) LIMIT="$OPTARG";;
-    h) show_help;;
-    \?) echo "Opção inválida: -$OPTARG" >&2; exit 1;;
-  esac
+# Process optional arguments
+# Process optional arguments
+while getopts "arl:" opt; do
+    case $opt in
+        r) r=1 ;;
+        a) a=1 ;;
+        l)
+            # Check if limite_l is a positive integer
+            if ! [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
+                echo "Invalid line limit: $OPTARG"
+                exibir_ajuda
+                exit 1
+            fi
+            limite_l="$OPTARG" ;;
+        \?) exibir_ajuda; exit 1 ;;
+    esac
 done
 
-# Verificar o número de argumentos
-if [ $# -ne 2 ]; then
-  echo "Erro: Forneça exatamente dois arquivos de saída do spacecheck para comparar."
-  exit 1
+shift $((OPTIND-1))
+
+# Now, you can directly access the remaining arguments as file1 and file2
+if [ $# -eq 2 ]; then
+    file1="$1"
+    file2="$2"
+else
+    exibir_ajuda
+    exit 1
 fi
 
-file1="$1"
-file2="$2"
+# Function to compare and display space changes
+function comparar_ficheiros() {
+    
+    diff=0
 
-# Função para comparar dois arquivos de saída do spacecheck
-function compare_spacecheck_files() {
-  local file1="$1"
-  local file2="$2"
+    mapfile -t size1 < <(cut -f1 "$1")
+    mapfile -t size2 < <(cut -f1 "$2")
+    mapfile -t nomes1 < <(cut -f2 "$1")
+    mapfile -t nomes2 < <(cut -f2 "$2")
 
-  join -a 1 -a 2 -o 1.1 1.2 2.2 <(sort "$file1") <(sort "$file2")
+    for ((i=0; i<${#nomes2[@]}; i++)); do
+        for ((j=0; i<${#nomes1[@]}; i++)); do
+            if [ "${nomes2[$i]}" == "${nomes1[$j]}" ]; then
+                diff=$(( ${size2[$i]} - ${size1[$j]} ))
+                echo -e "$diff\t${nomes2[$i]\n}"
+            else
+                echo -e "${size2[$i]}\t${nomes2[$i]}\tNEW\n"
+            fi
+        done
+    done
+
+    for ((j=0; j<${#nomes1[@]}; j++)); do
+        presente=0  # Inicialize uma variável de controle
+
+        for ((i=0; i<${#nomes2[@]}; i++)); do
+            if [ "${nomes1[$j]}" == "${nomes2[$i]}" ]; then
+                presente=1  # Define a variável de controle para 1 se o elemento estiver presente
+                break 
+            fi
+        done
+
+        if [ "$presente" -eq 0 ]; then
+            echo -e "-${size1[$j]}\t${nomes1[$j]}\tREMOVED\n"
+        fi
+    done
+    
 }
 
-# Comparar os dois arquivos de saída do spacecheck
-compared_result=$(compare_spacecheck_files "$file1" "$file2")
 
-# Exibir apenas diretórios comuns
-if [ -n "$SHOW_ONLY_COMMON_DIRS" ]; then
-  compared_result=$(echo "$compared_result" | awk '$2 == $3 || ($2 == "NEW" && $3 == "REMOVED")')
+if [ "$a" -eq 1 ]; then
+    sort_order="-k2,2"
+    if [ "$r" -eq 1 ]; then
+        sort_order="-k2,2r"
+    fi
+else
+    sort_order="-k1,1"
+    if [ "$r" -eq 1 ]; then
+        sort_order="-k1,1r"
+    fi
 fi
 
-# Ordenar os resultados com base nas opções
-if [ -n "$REVERSE_SORT" ]; then
-  compared_result=$(echo "$compared_result" | sort -r -k1,1 -h)
-elif [ -n "$ALPHABETICAL_SORT" ]; then
-  compared_result=$(echo "$compared_result" | sort -k2,2)
+# Call the function to compare and display space changes
+if [ -n "$limite_l" ]; then
+    comparar_ficheiros "$file1" "$file2" | sort "$sort_order" | head -n "$limite_l"
+else
+    comparar_ficheiros "$file1" "$file2" | sort "$sort_order"
 fi
-
-# Limitar o número de linhas na saída
-if [ -n "$LIMIT" ]; then
-  compared_result=$(echo "$compared_result" | head -n "$LIMIT")
-fi
-
-# Exibir a tabela resultante
-echo "SIZE NAME STATUS"
-echo "$compared_result"

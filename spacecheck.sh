@@ -116,6 +116,10 @@ fi
 
 if [ -n "$data_maxima" ]; then
     find_cmd="$find_cmd -newermt '$data_maxima 00:00:00'"
+    # Formatar a data para o nome do ficheiro
+    data_formatada=$(date -d "$data_maxima" +'%Y%m%d')
+
+    nomeficheiro="spacecheck_$data_formatada.txt"
 fi
 
 if [ -n "$size_min" ]; then
@@ -163,4 +167,9 @@ if [ -n "$limite_l" ]; then
     print_subdirectories "$dir" | head -n "$limite_l"
 else
     print_subdirectories "$dir"
-fi  
+fi
+
+# Imprimir o resultado para um ficheiro caso uma data seja fornecida
+if [ -n "$nomeficheiro" ]; then
+    print_subdirectories "$dir" > "$nomeficheiro"
+fi
