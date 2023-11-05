@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Default Variables
+# Variáveis por defeito
 a=0
 r=0
 limite_l=""
@@ -8,7 +8,7 @@ file1=""
 file2=""
 sort_order=""
 
-# Help function
+# Função para exibir a ajuda
 function exibir_ajuda() {
     echo "Usage: $0 [-a] [-r] [-l <lines>] <file1> <file2>"
     echo "Options:"
@@ -17,14 +17,13 @@ function exibir_ajuda() {
     echo "  -l <lines>     Limit the number of table lines"
 }
 
-# Process optional arguments
-# Process optional arguments
+# Processar argumentos
 while getopts "arl:" opt; do
     case $opt in
         r) r=1 ;;
         a) a=1 ;;
         l)
-            # Check if limite_l is a positive integer
+            # Verificar se o argumento é um número inteiro
             if ! [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
                 echo "Invalid line limit: $OPTARG"
                 exibir_ajuda
@@ -37,7 +36,6 @@ done
 
 shift $((OPTIND-1))
 
-# Now, you can directly access the remaining arguments as file1 and file2
 if [ $# -eq 2 ]; then
     file1="$1"
     file2="$2"
@@ -46,42 +44,44 @@ else
     exit 1
 fi
 
-# Function to compare and display space changes
+# Função para comparar os dois ficheiros
 function comparar_ficheiros() {
-    
-    diff=0
 
-    mapfile -t size1 < <(cut -f1 "$1")
-    mapfile -t size2 < <(cut -f1 "$2")
-    mapfile -t nomes1 < <(cut -f2 "$1")
-    mapfile -t nomes2 < <(cut -f2 "$2")
+    declare -A size1_dict
+    declare -A size2_dict
 
-    for ((i=0; i<${#nomes2[@]}; i++)); do
-        for ((j=0; i<${#nomes1[@]}; i++)); do
-            if [ "${nomes2[$i]}" == "${nomes1[$j]}" ]; then
-                diff=$(( ${size2[$i]} - ${size1[$j]} ))
-                echo -e "$diff\t${nomes2[$i]\n}"
-            else
-                echo -e "${size2[$i]}\t${nomes2[$i]}\tNEW\n"
+    # Ler e alocar os tamanhos e nomes dos ficheiros do primeiro diretório num array associativo
+    while IFS=$'\t' read -r size name; do
+        size1_dict["$name"]=$size
+    done < "$1"
+
+    # Ler e alocar os tamanhos e nomes dos ficheiros do segundo diretório num array associativo
+    while IFS=$'\t' read -r size name; do
+        size2_dict["$name"]=$size
+    done < "$2"
+
+    # Comparar os dois diretórios
+    for file in "${!size2_dict[@]}"; do
+        if [ -n "${size1_dict[$file]}" ]; then
+            size1="${size1_dict[$file]}"
+            size2="${size2_dict[$file]}"
+            diff=$((size2 - size1))
+            if [ "$diff" -gt 0 ]; then
+                diff="$diff"
             fi
-        done
-    done
-
-    for ((j=0; j<${#nomes1[@]}; j++)); do
-        presente=0  # Inicialize uma variável de controle
-
-        for ((i=0; i<${#nomes2[@]}; i++)); do
-            if [ "${nomes1[$j]}" == "${nomes2[$i]}" ]; then
-                presente=1  # Define a variável de controle para 1 se o elemento estiver presente
-                break 
-            fi
-        done
-
-        if [ "$presente" -eq 0 ]; then
-            echo -e "-${size1[$j]}\t${nomes1[$j]}\tREMOVED\n"
+            echo -e "$diff\t$file"
+        else
+            diff="${size2_dict[$file]}"
+            echo -e "$diff\t$file\tNEW"
         fi
     done
-    
+
+    for file in "${!size1_dict[@]}"; do
+        if [ -z "${size2_dict[$file]}" ]; then
+            diff=$(( ${size1_dict[$file]} - 2*${size1_dict[$file]} ))
+            echo -e "$diff\t$file\tREMOVED"
+        fi
+    done
 }
 
 
@@ -93,13 +93,15 @@ if [ "$a" -eq 1 ]; then
 else
     sort_order="-k1,1"
     if [ "$r" -eq 1 ]; then
-        sort_order="-k1,1r"
+        sort_order="-k1,1n"
+    else
+        sort_order="-k1,1nr"  
     fi
 fi
 
-# Call the function to compare and display space changes
+
 if [ -n "$limite_l" ]; then
-    comparar_ficheiros "$file1" "$file2" | sort "$sort_order" | head -n "$limite_l"
+    comparar_ficheiros "$file1" "$file2" | sort -t $'\t' "$sort_order" | head -n "$limite_l"
 else
-    comparar_ficheiros "$file1" "$file2" | sort "$sort_order"
+    comparar_ficheiros "$file1" "$file2" | sort -t $'\t' "$sort_order"
 fi
