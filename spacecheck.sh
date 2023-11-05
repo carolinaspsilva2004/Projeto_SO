@@ -52,15 +52,15 @@ function calcular_tamanho_dir() {
 
 # Help function
 function exibir_ajuda() {
-    echo "Uso: $0 [-n <regex>] [-d <data>] [-s <tamanho>] [-r] [-a] [-l <linhas>] <diretório>"
-    echo "Opções:"
-    echo "  -n <regex>      Filtrar por expressão regular no nome do arquivo"
+    echo "Uso: $0 [-n <expressão>] [-d <data>] [-s <tamanho>] [-r] [-a] [-l <limitação>] <diretório>"
+    echo "Opções disponíveis:"
+    echo "  -n <expressão>  Filtrar por padrão de nome de arquivo"
     echo "  -d <data>       Filtrar por data máxima de modificação (formato AAAA-MM-DD)"
     echo "  -s <tamanho>    Filtrar por tamanho mínimo de arquivo (em bytes)"
-    echo "  -r              Ordenar em ordem reversa"
-    echo "  -a              Ordenar por nome de arquivo"
-    echo "  -l <linhas>     Limitar o número de linhas da tabela"
-    echo "  <diretório>     Diretório a ser analisado (padrão: diretório atual)"
+    echo "  -r              Classificar em ordem inversa"
+    echo "  -a              Classificar por nome de arquivo"
+    echo "  -l <limitação>  Limitar a quantidade de linhas na tabela de saída"
+    echo "  <diretório>     Diretório a ser examinado (predefinido: diretório atual)"
 }
 
 # Process arguments
