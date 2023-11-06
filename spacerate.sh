@@ -50,26 +50,25 @@ function comparar_ficheiros() {
     declare -A size1_dict
     declare -A size2_dict
 
-    # Ler e alocar os tamanhos e nomes dos ficheiros do primeiro diretório num array associativo
+    # Read and allocate the sizes and names of the files from the first directory into an associative array
     while IFS=$'\t' read -r size name; do
         size1_dict["$name"]=$size
     done < "$1"
 
-    # Ler e alocar os tamanhos e nomes dos ficheiros do segundo diretório num array associativo
+    # Read and allocate the sizes and names of the files from the second directory into an associative array
     while IFS=$'\t' read -r size name; do
         size2_dict["$name"]=$size
     done < "$2"
 
-    # Comparar os dois diretórios
+    # Compare the two directories
     for file in "${!size2_dict[@]}"; do
         if [ -n "${size1_dict[$file]}" ]; then
             size1="${size1_dict[$file]}"
             size2="${size2_dict[$file]}"
             diff=$((size2 - size1))
-            if [ "$diff" -gt 0 ]; then
-                diff="$diff"
+            if [ "$diff" -ge 0 ]; then
+                echo -e "$diff\t$file"
             fi
-            echo -e "$diff\t$file"
         else
             diff="${size2_dict[$file]}"
             echo -e "$diff\t$file\tNEW"
