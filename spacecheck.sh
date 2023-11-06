@@ -9,6 +9,8 @@ dir="."
 a=0
 r=0
 
+arguments="$*"
+
 data_atual=$(date +'%Y%m%d')
 
 # Function to calculate the space occupied by a file or directory
@@ -117,10 +119,6 @@ fi
 
 if [ -n "$data_maxima" ]; then
     find_cmd="$find_cmd -newermt '$data_maxima 00:00:00'"
-    # Formatar a data para o nome do ficheiro
-    data_formatada=$(date -d "$data_maxima" +'%Y%m%d')
-
-    nomeficheiro="spacecheck_$data_formatada.txt"
 fi
 
 if [ -n "$size_min" ]; then
@@ -162,15 +160,10 @@ function print_subdirectories() {
 }
 
 
-printf "SIZE\tNAME\t%s\t%s\n" "$data_atual" "$dir"
+printf "SIZE\tNAME\t%s\n" "$data_atual $arguments" 
 
 if [ -n "$limite_l" ]; then
     print_subdirectories "$dir" | head -n "$limite_l"
 else
     print_subdirectories "$dir"
-fi
-
-# Imprimir o resultado para um ficheiro caso uma data seja fornecida
-if [ -n "$nomeficheiro" ]; then
-    print_subdirectories "$dir" > "$nomeficheiro"
 fi
