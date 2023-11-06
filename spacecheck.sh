@@ -35,14 +35,15 @@ function calcular_tamanho_dir() {
         # Check if the directory is accessible
         if [ -r "$diretorio" ]; then
             sum=0
-            for item in "$diretorio"/*; do
+            # Use find command to get all files under the directory and its subdirectories
+            while IFS= read -r -d '' item; do
                 if [[ "$item" =~ $regex && -e "$item" && ( -z "$data_maxima" || "$(stat -c %Y "$item")" -le "$(date -d "$data_maxima" +%s)" ) && ( -z "$size_min" || "$(stat -c %s "$item")" -ge "$size_min" ) ]]; then
                     espaco=$(calcular_tamanho_ficheiro "$item")
                     if [ "$espaco" != "NA" ]; then
                         sum=$((sum + espaco))
                     fi
                 fi
-            done
+            done < <(find "$diretorio" -type f -print0)
         fi
     fi
 
