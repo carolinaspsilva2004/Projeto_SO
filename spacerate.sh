@@ -53,12 +53,13 @@ function comparar_ficheiros() {
     # Read and allocate the sizes and names of the files from the first directory into an associative array
     while IFS=$'\t' read -r size name; do
         size1_dict["$name"]=$size
-    done < "$1"
+    done < <(tail -n +2 "$1")
 
     # Read and allocate the sizes and names of the files from the second directory into an associative array
     while IFS=$'\t' read -r size name; do
         size2_dict["$name"]=$size
-    done < "$2"
+    done < <(tail -n +2 "$2")
+
 
     # Compare the two directories
     for file in "${!size2_dict[@]}"; do
