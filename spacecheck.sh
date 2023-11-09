@@ -10,7 +10,6 @@ a=0
 r=0
 
 arguments="$*"
-
 data_atual=$(date +'%Y%m%d')
 
 # Function to calculate the space occupied by a file or directory
