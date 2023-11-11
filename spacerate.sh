@@ -1,35 +1,25 @@
 #!/bin/bash
 
-# Variáveis por defeito
+# Variáveis globais
 a=0
 r=0
-limite_l=""
 file1=""
 file2=""
 sort_order=""
 
 # Função para exibir a ajuda
 function exibir_ajuda() {
-    echo "Usage: $0 [-a] [-r] [-l <lines>] <file1> <file2>"
+    echo "Usage: $0 [-a] [-r] <file1> <file2>"
     echo "Options:"
     echo "  -r              Reverse order sorting"
     echo "  -a              Sort by file name"
-    echo "  -l <lines>     Limit the number of table lines"
 }
 
 # Processar argumentos
-while getopts "arl:" opt; do
+while getopts "ar" opt; do
     case $opt in
         r) r=1 ;;
         a) a=1 ;;
-        l)
-            # Verificar se o argumento é um número inteiro
-            if ! [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
-                echo "Invalid line limit: $OPTARG"
-                exibir_ajuda
-                exit 1
-            fi
-            limite_l="$OPTARG" ;;
         \?) exibir_ajuda; exit 1 ;;
     esac
 done
@@ -67,9 +57,11 @@ function comparar_ficheiros() {
             size1="${DirA[$file]}"
             size2="${DirN[$file]}"
             diff=$((size2 - size1))
+            # Se a diferença de tamanho for não-negativa, imprimir como uma atualização
             if [ "$diff" -ge 0 ]; then
                 echo -e "$diff\t$file"
             fi
+        # Se o arquivo for novo (não existia no primeiro diretório), marcá-lo como "NEW"
         else
             diff="${DirN[$file]}"
             echo -e "$diff\t$file\tNEW"
@@ -77,6 +69,7 @@ function comparar_ficheiros() {
     done
 
     for file in "${!DirA[@]}"; do
+        # Se o arquivo não existir no segundo diretório, marcá-lo como "REMOVED"
         if [ -z "${DirN[$file]}" ]; then
             diff=$(( ${DirA[$file]} - 2*${DirA[$file]} ))
             echo -e "$diff\t$file\tREMOVED"
@@ -99,9 +92,4 @@ else
     fi
 fi
 
-# Aplicar o filtro limite lines e exectar as funções
-if [ -n "$limite_l" ]; then
-    comparar_ficheiros "$file1" "$file2" | sort -t $'\t' "$sort_order" | head -n "$limite_l"
-else
-    comparar_ficheiros "$file1" "$file2" | sort -t $'\t' "$sort_order"
-fi
+comparar_ficheiros "$file1" "$file2" | sort -t $'\t' "$sort_order"

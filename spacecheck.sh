@@ -9,13 +9,15 @@ dir="."
 a=0
 r=0
 
+# Variáveis para o cabeçalho
 arguments="$*"
+# Comando para obter a data atual no formato AAAAMMDD
 data_atual=$(date +'%Y%m%d')
 
 # Função para calcular o tamanho de um ficheiro
 function calcular_tamanho_ficheiro() {
     local item="$1"
-    local espaco="NA"
+    local espaco="NA" # Iniciar com NA para ficheiros/diretórios inacessíveis
 
     if [ -e "$item" ]; then
         espaco=$(du -bs "$item" 2>/dev/null | cut -f1)
@@ -38,7 +40,8 @@ function calcular_tamanho_dir() {
             sum=0
             # Usar um loop while + read + find para evitar problemas com nomes de ficheiros contendo espaços
             while IFS= read -r -d '' item; do
-                if [[ "$item" =~ $regex && -e "$item" && ( -z "$data_maxima" || "$(stat -c %Y "$item")" -le "$(date -d "$data_maxima" +%s)" ) && ( -z "$size_min" || "$(stat -c %s "$item")" -ge "$size_min" ) ]]; then
+                if [[ "$item" =~ $regex && -e "$item" && ( -z "$data_maxima" || "$(stat -c %Y "$item")" -le "$(date -d "$data_maxima" +%s)" ) 
+                && ( -z "$size_min" || "$(stat -c %s "$item")" -ge "$size_min" ) ]]; then
                     espaco=$(calcular_tamanho_ficheiro "$item")
                     if [ "$espaco" != "NA" ]; then
                         sum=$((sum + espaco))
@@ -129,27 +132,35 @@ function print_subdirectories() {
     local directory="$1"
     local sort_order=""
 
+    # Verificar se a opção de ordenação por nome está nos argumentos
     if [ "$a" -eq 1 ]; then
         sort_order="-d"
+        # Se a opção de ordenação reversa estiver nos argumentos, usar -dr
         if [ "$r" -eq 1 ]; then
             sort_order="-dr"
         fi
+        # Encontrar subdiretórios, ordenar por nome e iterar sobre eles
         find "$directory" -type d 2>/dev/null | sort "$sort_order" -t$'\t' | while read -r subdir; do
             if [ -d "$subdir" ]; then
                 espaco=$(calcular_tamanho_dir "$subdir" "$regex" "$data_maxima" "$size_min")
+                # Se o tamanho não for zero, imprimir informações
                 if [ "$espaco" != 0 ]; then
                     printf "%s\t%s\n" "$espaco" "$subdir"
                 fi
             fi
         done 
     else
+        # Mudar a ordem de ordenação para numérica (menor para maior)
         sort_order="-k1,1nr"
+        # Se o -r estiver nos argumentos, mudar a ordem de ordenação para numérica reversa (maior para menor)
         if [ "$r" -eq 1 ]; then
             sort_order="-k1,1n"
         fi
+        # Encontrar subdiretórios, calcular o tamanho e ordenar por tamanho
         find "$directory" -type d 2>/dev/null | while read -r subdir; do
             if [ -d "$subdir" ]; then
                 espaco=$(calcular_tamanho_dir "$subdir" "$regex" "$data_maxima" "$size_min")
+                # Se o tamanho não for zero, imprimir informações
                 if [ "$espaco" != 0 ]; then
                     printf "%s\t%s\n" "$espaco" "$subdir"
                 fi
