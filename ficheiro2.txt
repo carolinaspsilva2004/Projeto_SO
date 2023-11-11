@@ -1,0 +1,8 @@
+SIZE	NAME	20231109 -d Oct 30 10:10 ../../../AED
+180181	../../../AED
+180181	../../../AED/AED_Guiao_07
+180181	../../../AED/AED_Guiao_07/AED_Guiao_07
+17325	../../../AED/AED_Guiao_07/AED_Guiao_07/Guiao_07_Ficheiros_para_os_Estudantes
+8287	../../../AED/AED_Guiao_07/AED_Guiao_07/Guiao_07_Ficheiros_para_os_Estudantes/02_DATE_and_PERSON
+4544	../../../AED/AED_Guiao_07/AED_Guiao_07/Guiao_07_Ficheiros_para_os_Estudantes/01_STACK_and_QUEUE_example
+4494	../../../AED/AED_Guiao_07/AED_Guiao_07/Guiao_07_Ficheiros_para_os_Estudantes/03_STACK_and_QUEUE_example

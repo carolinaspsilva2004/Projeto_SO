@@ -10,7 +10,6 @@ a=0
 r=0
 
 arguments="$*"
-
 data_atual=$(date +'%Y%m%d')
 
 # Função para calcular o tamanho de um ficheiro
