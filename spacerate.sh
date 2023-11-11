@@ -47,44 +47,44 @@ fi
 # Função para comparar os dois ficheiros
 function comparar_ficheiros() {
 
-    declare -A size1_dict
-    declare -A size2_dict
+    declare -A DirA
+    declare -A DirN
 
-    # Read and allocate the sizes and names of the files from the first directory into an associative array
+    # Ler e alocar os tamanhos e nomes dos ficheiros do primeiro diretório num array associativo
     while IFS=$'\t' read -r size name; do
-        size1_dict["$name"]=$size
+        DirA["$name"]=$size
     done < <(tail -n +2 "$1")
 
-    # Read and allocate the sizes and names of the files from the second directory into an associative array
+    # Ler e alocar os tamanhos e nomes dos ficheiros do segundo diretório num array associativo
     while IFS=$'\t' read -r size name; do
-        size2_dict["$name"]=$size
+        DirN["$name"]=$size
     done < <(tail -n +2 "$2")
 
 
-    # Compare the two directories
-    for file in "${!size2_dict[@]}"; do
-        if [ -n "${size1_dict[$file]}" ]; then
-            size1="${size1_dict[$file]}"
-            size2="${size2_dict[$file]}"
+    # Comparar os dois arrays associativos
+    for file in "${!DirN[@]}"; do
+        if [ -n "${DirA[$file]}" ]; then
+            size1="${DirA[$file]}"
+            size2="${DirN[$file]}"
             diff=$((size2 - size1))
             if [ "$diff" -ge 0 ]; then
                 echo -e "$diff\t$file"
             fi
         else
-            diff="${size2_dict[$file]}"
+            diff="${DirN[$file]}"
             echo -e "$diff\t$file\tNEW"
         fi
     done
 
-    for file in "${!size1_dict[@]}"; do
-        if [ -z "${size2_dict[$file]}" ]; then
-            diff=$(( ${size1_dict[$file]} - 2*${size1_dict[$file]} ))
+    for file in "${!DirA[@]}"; do
+        if [ -z "${DirN[$file]}" ]; then
+            diff=$(( ${DirA[$file]} - 2*${DirA[$file]} ))
             echo -e "$diff\t$file\tREMOVED"
         fi
     done
 }
 
-
+# Atribuir o valor da variável sort_order de acordo com os argumentos fornecidos
 if [ "$a" -eq 1 ]; then
     sort_order="-k2,2"
     if [ "$r" -eq 1 ]; then
@@ -99,7 +99,7 @@ else
     fi
 fi
 
-
+# Aplicar o filtro limite lines e exectar as funções
 if [ -n "$limite_l" ]; then
     comparar_ficheiros "$file1" "$file2" | sort -t $'\t' "$sort_order" | head -n "$limite_l"
 else

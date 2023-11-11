@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Default Variables
+# Variáveis globais
 regex=""
 data_maxima=""
 size_min=""
@@ -13,7 +13,7 @@ arguments="$*"
 
 data_atual=$(date +'%Y%m%d')
 
-# Function to calculate the space occupied by a file or directory
+# Função para calcular o tamanho de um ficheiro
 function calcular_tamanho_ficheiro() {
     local item="$1"
     local espaco="NA"
@@ -28,16 +28,16 @@ function calcular_tamanho_ficheiro() {
     echo "$espaco"
 }
 
-# Function to calculate the total size of a directory
+# Função para calcular o tamanho de um diretório
 function calcular_tamanho_dir() {
     local diretorio="$1"
-    local sum="NA"  # Initialize sum as "NA"
+    local sum="NA"  # Iniciar com NA para diretórios inacessíveis
 
     if [ -d "$diretorio" ]; then
-        # Check if the directory is accessible
+        # Verificar se o diretório é legível
         if [ -r "$diretorio" ]; then
             sum=0
-            # Use find command to get all files under the directory and its subdirectories
+            # Usar um loop while + read + find para evitar problemas com nomes de ficheiros contendo espaços
             while IFS= read -r -d '' item; do
                 if [[ "$item" =~ $regex && -e "$item" && ( -z "$data_maxima" || "$(stat -c %Y "$item")" -le "$(date -d "$data_maxima" +%s)" ) && ( -z "$size_min" || "$(stat -c %s "$item")" -ge "$size_min" ) ]]; then
                     espaco=$(calcular_tamanho_ficheiro "$item")
@@ -53,7 +53,7 @@ function calcular_tamanho_dir() {
 }
 
 
-# Help function
+# Função para exibir a ajuda
 function exibir_ajuda() {
     echo "Uso: $0 [-n <expressão>] [-d <data>] [-s <tamanho>] [-r] [-a] [-l <limitação>] <diretório>"
     echo "Opções disponíveis:"
@@ -66,19 +66,19 @@ function exibir_ajuda() {
     echo "  <diretório>     Diretório a ser examinado (predefinido: diretório atual)"
 }
 
-# Process arguments
+# Processar argumentos
 while getopts "n:d:s:ral:" opt; do
     case $opt in
         n) regex="$OPTARG" ;;
         d)
-            # Check if data_maxima is a valid date
+            # Verificar se a data é válida
             if ! date -d "$OPTARG" &>/dev/null; then
                 echo "Data inválida: $OPTARG"
                 exit 1
             fi
             data_maxima="$OPTARG" ;;
         s)
-            # Check if size_min is a positive integer
+            # Veirificar se o tamanho é um inteiro positivo
             if ! [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
                 echo "Tamanho inválido: $OPTARG"
                 exit 1
@@ -89,7 +89,7 @@ while getopts "n:d:s:ral:" opt; do
         a)
             a=1 ;;
         l)
-            # Check if limite_l is a positive integer
+            # Verificar se o limite é um inteiro positivo
             if ! [[ "$OPTARG" =~ ^[0-9]+$ ]]; then
                 echo "Limite de linhas inválido: $OPTARG"
                 exit 1
@@ -101,14 +101,14 @@ done
 
 shift $((OPTIND-1))
 
-# Check if a directory was provided as an argument
+# Verificar se um diretório foi fornecido
 if [ -n "$1" ]; then
     dir="$1"
 else
     dir="."
 fi
 
-# Generate the 'find' command based on options
+# Gerar o comando 'find' com base nos argumentos fornecidos
 find_cmd="find $dir"
 
 if [ -n "$regex" ]; then
@@ -125,7 +125,7 @@ if [ -n "$size_min" ]; then
     find_cmd="$find_cmd -size +${size_min}c"
 fi
 
-# Execute the 'find' command and calculate the space occupied
+# Função para imprimir os subdiretórios
 function print_subdirectories() {
     local directory="$1"
     local sort_order=""
@@ -159,9 +159,10 @@ function print_subdirectories() {
     fi
 }
 
-
+# Imprimir cabeçalho
 printf "SIZE\tNAME\t%s\n" "$data_atual $arguments" 
 
+# Aplicar o filtro limite lines e exectar as funções
 if [ -n "$limite_l" ]; then
     print_subdirectories "$dir" | head -n "$limite_l"
 else
